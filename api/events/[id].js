@@ -1,12 +1,5 @@
 // api/events/[id].js
-const NY_BOOK_TITLES = new Set([
-  'DraftKings',
-  'FanDuel',
-  'BetMGM',
-  'Caesars',
-  'BetRivers',
-  'Resorts World Bet'
-]);
+// Serverless proxy for fetching odds for a specific event.
 
 const _mem = new Map();
 const DEFAULT_TTL = 60;
@@ -22,17 +15,6 @@ function setCachingHeaders(res, ttl = DEFAULT_TTL) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Access-Control-Allow-Origin', '*');
 }
-
-function filterEventToNY(json) {
-  // The Odds API event endpoint returns a single event object, not an array.
-  const evt = json;
-  if (!evt || !Array.isArray(evt.bookmakers)) {
-    return { ...evt, bookmakers: [] };
-  }
-  const books = (evt.bookmakers || []).filter(bm => NY_BOOK_TITLES.has(bm.title));
-  return { ...evt, bookmakers: books };
-}
-
 
 export default async function handler(req, res) {
   try {
@@ -67,7 +49,10 @@ export default async function handler(req, res) {
     let body = text;
     if (status >= 200 && status < 300) {
       const data = JSON.parse(text);
-      body = JSON.stringify(filterEventToNY(data));
+      // The upstream API for a single event returns an OBJECT.
+      // To keep our API consistent, we'll wrap it in an array,
+      // so the frontend always receives an array of events.
+      body = JSON.stringify([data]);
     }
 
     _mem.set(key, { ts: Date.now(), status, body });
