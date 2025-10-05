@@ -32,7 +32,7 @@
       <div class="flex items-center justify-between h-16">
         <div class="flex items-center space-x-3">
           <svg class="h-8 w-8 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 S0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
           <h1 class="text-2xl font-bold tracking-tighter text-white">
             <span class="brand-gold">Odds</span>Aggregator
@@ -83,8 +83,8 @@
 
     <!-- NFL Games -->
     <section>
-      <h2 class="text-3xl font-bold mb-4 border-b-2 border-gray-600 pb-2">Upcoming NFL Games</h2>
-      <div id="games-container" class="space-y-8"></div>
+      <h2 class="text-3xl font-bold mb-4 border-b-2 border-gray-600 pb-2">This Week's NFL Games</h2>
+      <div id="games-container" class="space-y-4"></div>
     </section>
   </main>
 
@@ -117,32 +117,33 @@
       return a>b?a:b;
     }
     const formatOdds = (o)=> o>0?`+${Math.round(o)}`:Math.round(o);
+    const formatProb = (p) => `(${(p * 100).toFixed(1)}%)`;
 
     // Renderers
     const renderGames = (games)=>{
       if(!gamesContainer) return;
       gamesContainer.innerHTML='';
       if(!games.length){
-        gamesContainer.innerHTML='<p class="text-gray-400 text-center">No upcoming NFL games found. Try again shortly.</p>'; return;
+        gamesContainer.innerHTML='<p class="text-gray-400 text-center py-8">No upcoming NFL games found for the current week. Check back closer to Thursday!</p>'; return;
       }
       games.forEach(game=>{
         const card=document.createElement('div');
         card.className='card rounded-lg shadow-xl overflow-hidden';
         card.id=game.id;
         card.innerHTML=`
-          <div class="p-4 bg-gray-900 flex justify-between items-center">
+          <div class="p-3 bg-gray-800/50 flex justify-between items-center">
             <div>
-              <p class="text-xl font-bold">${game.awayTeam} @ ${game.homeTeam}</p>
-              <p class="text-sm text-gray-400">${game.time}</p>
+              <p class="text-lg font-bold">${game.awayTeam} @ ${game.homeTeam}</p>
+              <p class="text-xs text-gray-400">${game.time}</p>
             </div>
           </div>
-          <div class="p-2 bg-gray-800 border-b-2 border-gray-700">
-            <div class="flex space-x-1">
-              <button class="tab tab-active flex-1 p-2 rounded text-sm font-semibold" data-tab="game-lines">Game Lines</button>
-              <button class="tab flex-1 p-2 rounded text-sm font-semibold" data-tab="player-props">Player Props</button>
+          <div class="bg-gray-800 border-y border-gray-700">
+            <div class="flex space-x-1 p-1">
+              <button class="tab tab-active flex-1 py-1.5 px-2 rounded text-xs font-semibold" data-tab="game-lines">Game Lines</button>
+              <button class="tab flex-1 py-1.5 px-2 rounded text-xs font-semibold" data-tab="player-props">Player Props</button>
             </div>
           </div>
-          <div class="p-2">
+          <div>
             <div id="game-lines-${game.id}" class="tab-content tab-content-active"></div>
             <div id="player-props-${game.id}" class="tab-content"></div>
           </div>`;
@@ -160,29 +161,40 @@
       const bestAway = mlAways.length? Math.max(...mlAways) : null;
       const bestHome = mlHomes.length? Math.max(...mlHomes) : null;
 
-      const validSpreads = game.odds.filter(o=>o.spread?.value);
+      const validSpreads = game.odds.filter(o=>o.spread?.odds);
       const avgSpread = validSpreads.length? (validSpreads.reduce((s,o)=>s+o.spread.value,0)/validSpreads.length).toFixed(1):null;
       const spreadTeam = validSpreads.length? validSpreads[0].spread.team : '';
+      const avgSpreadProb = validSpreads.length ? (validSpreads.reduce((s,o)=>s+americanToProb(o.spread.odds),0)/validSpreads.length) : 0;
+      
       const awayProbs = game.odds.map(o=>o.moneyline?.away?americanToProb(o.moneyline.away):null).filter(p=>p!==null);
       const homeProbs = game.odds.map(o=>o.moneyline?.home?americanToProb(o.moneyline.home):null).filter(p=>p!==null);
-      const avgAway = awayProbs.length? awayProbs.reduce((s,p)=>s+p,0)/awayProbs.length : 0;
-      const avgHome = homeProbs.length? homeProbs.reduce((s,p)=>s+p,0)/homeProbs.length : 0;
-      const tot = avgAway+avgHome || 1;
-      const aggAwayMl = probToAmerican(avgAway/tot);
-      const aggHomeMl = probToAmerican(avgHome/tot);
-      const validTotals = game.odds.filter(o=>o.total?.value);
+      const avgAwayProb = awayProbs.length? awayProbs.reduce((s,p)=>s+p,0)/awayProbs.length : 0;
+      const avgHomeProb = homeProbs.length? homeProbs.reduce((s,p)=>s+p,0)/homeProbs.length : 0;
+      const tot = avgAwayProb+avgHomeProb || 1;
+      const normAwayProb = avgAwayProb/tot;
+      const normHomeProb = avgHomeProb/tot;
+      const aggAwayMl = probToAmerican(normAwayProb);
+      const aggHomeMl = probToAmerican(normHomeProb);
+
+      const validTotals = game.odds.filter(o=>o.total?.over);
       const avgTotal = validTotals.length? (validTotals.reduce((s,o)=>s+o.total.value,0)/validTotals.length).toFixed(1):null;
+      const avgOverProb = validTotals.length ? (validTotals.reduce((s,o)=>s+americanToProb(o.total.over),0)/validTotals.length) : 0;
+      const avgUnderProb = validTotals.length ? (validTotals.reduce((s,o)=>s+americanToProb(o.total.under),0)/validTotals.length) : 0;
 
       const aggregateRowHtml = `
         <tr class="aggregate-row border-b border-gray-600">
-          <td class="p-3 font-semibold italic">Aggregate Line</td>
-          <td class="p-3 text-center">${avgSpread&&spreadTeam? `${spreadTeam.substring(0,3).toUpperCase()} ${avgSpread}`:'N/A'}</td>
-          <td class="p-3 text-center">
-            <div class="p-1">${isFinite(aggAwayMl)?formatOdds(aggAwayMl):'N/A'}</div>
-            <div class="p-1 mt-1">${isFinite(aggHomeMl)?formatOdds(aggHomeMl):''}</div>
+          <td class="p-2 font-semibold italic">Aggregate</td>
+          <td class="p-2 text-center">
+            ${avgSpread&&spreadTeam? `${spreadTeam.substring(0,3).toUpperCase()} ${avgSpread} <span class="text-gray-400">${formatProb(avgSpreadProb)}</span>`:'N/A'}
           </td>
-          <td class="p-3 text-center">${avgTotal?`O/U ${avgTotal}`:'N/A'}</td>
-          <td class="p-3 text-center">-</td>
+          <td class="p-2 text-center">
+            <div>${isFinite(aggAwayMl)?`${formatOdds(aggAwayMl)} <span class="text-gray-400">${formatProb(normAwayProb)}</span>`:'N/A'}</div>
+            <div>${isFinite(aggHomeMl)?`${formatOdds(aggHomeMl)} <span class="text-gray-400">${formatProb(normHomeProb)}</span>`:''}</div>
+          </td>
+          <td class="p-2 text-center">
+             ${avgTotal?`O/U ${avgTotal}<br/><span class="text-gray-400">O: ${formatProb(avgOverProb)} U: ${formatProb(avgUnderProb)}</span>`:'N/A'}
+          </td>
+          <td class="p-2 text-center">-</td>
         </tr>`;
 
       const rows = game.odds.map(o=>{
@@ -190,17 +202,17 @@
         const isBestHome = bestHome!=null && o.moneyline?.home===bestHome;
         return `
           <tr class="border-b border-gray-700 hover:bg-gray-700/50">
-            <td class="p-3 font-semibold">${o.sportsbook}</td>
-            <td class="p-3 text-center">${o.spread? `${o.spread.team.substring(0,3).toUpperCase()} ${o.spread.value} <span class="text-gray-400">(${formatOdds(o.spread.odds)})</span>`:'N/A'}</td>
-            <td class="p-3 text-center">
+            <td class="p-2 font-semibold">${o.sportsbook}</td>
+            <td class="p-2 text-center">${o.spread? `${o.spread.team.substring(0,3).toUpperCase()} ${o.spread.value} <span class="text-gray-400">(${formatOdds(o.spread.odds)})</span>`:'N/A'}</td>
+            <td class="p-2 text-center">
               ${o.moneyline? `
-                 <div class="p-1 ${isBestAway?'best-odd':''}">${formatOdds(o.moneyline.away)}</div>
-                 <div class="p-1 mt-1 ${isBestHome?'best-odd':''}">${formatOdds(o.moneyline.home)}</div>`:'N/A'}
+                 <div class="${isBestAway?'best-odd':''}">${formatOdds(o.moneyline.away)}</div>
+                 <div class="${isBestHome?'best-odd':''}">${formatOdds(o.moneyline.home)}</div>`:'N/A'}
             </td>
-            <td class="p-3 text-center">
+            <td class="p-2 text-center">
               ${o.total? `O ${o.total.value} <span class="text-gray-400">(${formatOdds(o.total.over)})</span><br/>U ${o.total.value} <span class="text-gray-400">(${formatOdds(o.total.under)})</span>`:'N/A'}
             </td>
-            <td class="p-3 text-center">
+            <td class="p-2 text-center">
               ${o.spread? `<button title="Add Spread to Editor's Choice" class="btn-add text-gray-500 hover:text-amber-400" data-game-id="${game.id}" data-sportsbook="${o.sportsbook}" data-type="spread">➕</button>`:''}
             </td>
           </tr>`;
@@ -208,9 +220,9 @@
 
       container.innerHTML = `
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full text-xs">
             <thead class="bg-gray-800 border-b-2 border-gray-600">
-              <tr><th class="p-3 text-left">Book</th><th class="p-3 text-center">Spread</th><th class="p-3 text-center">Moneyline</th><th class="p-3 text-center">Total</th><th class="p-3 text-center">Pick</th></tr>
+              <tr><th class="p-2 text-left">Book</th><th class="p-2 text-center">Spread</th><th class="p-2 text-center">Moneyline</th><th class="p-2 text-center">Total</th><th class="p-2 text-center">Pick</th></tr>
             </thead>
             <tbody>${aggregateRowHtml}${rows}</tbody>
           </table>
@@ -262,7 +274,7 @@
       if (!container) return;
 
       const allPlayerProps = processPlayerPropsFromEvent(eventData);
-      let html = '<div class="space-y-4">';
+      let html = '<div class="space-y-4 p-2">';
       if (Object.keys(allPlayerProps).length > 0) {
         for (const [player, props] of Object.entries(allPlayerProps)) {
           html += `<div class="card rounded-lg p-3"><h4 class="font-bold text-amber-400">${player}</h4><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">`;
@@ -273,13 +285,22 @@
             const booksData = Object.values(books);
             if (booksData.length > 0) {
               const avgPoint = booksData.reduce((sum, d) => sum + d.point, 0) / booksData.length;
-              const avgOver  = booksData.reduce((sum, d) => sum + d.over, 0) / booksData.length;
-              const avgUnder = booksData.reduce((sum, d) => sum + d.under, 0) / booksData.length;
+              
+              const overProbs = booksData.map(d => americanToProb(d.over));
+              const underProbs = booksData.map(d => americanToProb(d.under));
+              const avgOverProb = overProbs.reduce((s, p) => s + p, 0) / overProbs.length;
+              const avgUnderProb = underProbs.reduce((s, p) => s + p, 0) / underProbs.length;
+
               html += `
                 <div class="flex justify-between items-center my-1 font-bold aggregate-row rounded px-1 text-xs">
                   <span>Aggregate</span>
-                  <span class="font-mono">${avgPoint.toFixed(1)} (O: ${formatOdds(avgOver)} / U: ${formatOdds(avgUnder)})</span>
-                </div>`;
+                  <span class="font-mono">${avgPoint.toFixed(1)}</span>
+                </div>
+                <div class="flex justify-between items-center text-gray-400 text-[11px]">
+                   <span>Over: ${formatProb(avgOverProb)}</span>
+                   <span>Under: ${formatProb(avgUnderProb)}</span>
+                </div>
+                `;
             }
 
             Object.entries(books).forEach(([book, odds]) => {
@@ -329,11 +350,34 @@
 
     // ===== Data shaping =====
     function processMainOddsData(data){
-      return data.map(game=>({
+      const now = new Date();
+
+      // An NFL week is typically Thursday to Monday night.
+      // We'll define the window as starting on the most recent Thursday morning
+      // and ending the following Tuesday morning.
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0=Sun, 4=Thu
+      const daysSinceThursday = (dayOfWeek + 3) % 7;
+      
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - daysSinceThursday);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 5); // End of Monday is start of Tuesday
+      endOfWeek.setHours(6, 0, 0, 0); // 6am Tuesday morning cutoff
+
+      return data
+        .filter(game => {
+          const gameDate = new Date(game.commence_time);
+          // Filter for games that are in the future, and within the current NFL week window.
+          return gameDate > now && gameDate >= startOfWeek && gameDate < endOfWeek;
+        })
+        .map(game=>({
         id: game.id,
         awayTeam: game.away_team,
         homeTeam: game.home_team,
-        time: new Date(game.commence_time).toLocaleString(),
+        time: new Date(game.commence_time).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
         odds: game.bookmakers
           .map(bm=>{
             const odds={ sportsbook: bm.title };
@@ -414,14 +458,13 @@
           for (const [propType, books] of Object.entries(propTypes)) {
             const booksData = Object.values(books);
             if (!booksData.length) continue;
+            
+            const overProbs = booksData.map(d => americanToProb(d.over));
+            const underProbs = booksData.map(d => americanToProb(d.under));
+            const pOver = overProbs.reduce((s, p) => s + p, 0) / overProbs.length;
+            const pUnder = underProbs.reduce((s, p) => s + p, 0) / underProbs.length;
 
-            const avgOver  = booksData.reduce((s,b)=>s+b.over,0)/booksData.length;
-            const avgUnder = booksData.reduce((s,b)=>s+b.under,0)/booksData.length;
-            const point    = booksData[0].point;
-            const overProb = americanToProb(avgOver);
-            const underProb= americanToProb(avgUnder);
-            const tot = (overProb+underProb)||1;
-            const pOver = overProb/tot, pUnder = underProb/tot;
+            const point = booksData[0].point;
 
             const bestOver = Math.max(...booksData.map(b=>b.over));
             const bestOverBook = Object.keys(books).find(k=>books[k].over===bestOver);
