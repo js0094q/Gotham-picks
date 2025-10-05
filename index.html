@@ -32,7 +32,7 @@
       <div class="flex items-center justify-between h-16">
         <div class="flex items-center space-x-3">
           <svg class="h-8 w-8 text-amber-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 S0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
           </svg>
           <h1 class="text-2xl font-bold tracking-tighter text-white">
             <span class="brand-gold">Odds</span>Aggregator
@@ -370,8 +370,12 @@
       return data
         .filter(game => {
           const gameDate = new Date(game.commence_time);
-          // Filter for games that are in the future, and within the current NFL week window.
-          return gameDate > now && gameDate >= startOfWeek && gameDate < endOfWeek;
+          // A standard NFL game is about 3.5 hours. We'll use 4 to be safe.
+          const estimatedGameDurationHours = 4;
+          const gameEndDate = new Date(gameDate.getTime() + estimatedGameDurationHours * 60 * 60 * 1000);
+
+          // Filter for games that have not ended yet, and are within the current NFL week window.
+          return gameEndDate > now && gameDate >= startOfWeek && gameDate < endOfWeek;
         })
         .map(game=>({
         id: game.id,
@@ -508,3 +512,4 @@
   </script>
 </body>
 </html>
+
