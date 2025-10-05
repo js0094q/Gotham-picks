@@ -402,7 +402,8 @@
         url.searchParams.set('oddsFormat', ODDS_FORMAT);
         const r = await fetch(url, {cache: 'no-store'});
         if(!r.ok) throw new Error(`API Error ${r.status}`);
-        const eventData = (await r.json())[0] || {};
+        const eventDataArray = await r.json();
+        const eventData = eventDataArray[0] || {};
 
         // Render props panel per game
         renderPlayerProps(gameId, eventData);
