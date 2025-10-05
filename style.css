@@ -1,0 +1,11 @@
+body{font-family:'Inter',sans-serif;background:#111827}
+.brand-gold{color:#D97706}
+.card{background:#1F2937;border:1px solid #374151}
+.best-odd{background-color:rgba(16,185,129,.28);font-weight:700;border-radius:4px}
+.aggregate-row{background:#064e3b;color:#a7f3d0}
+.tab{transition:background-color .2s,color .2s}
+.tab-active{background:#D97706;color:#111827}
+.tab-content{display:none}
+.tab-content-active{display:block}
+.loader{border:4px solid #374151;border-top:4px solid #D97706;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}

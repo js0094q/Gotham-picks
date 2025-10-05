@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "functions": {
+    "api/odds.js": {
+      "memory": 128
+    },
+    "api/events/[id].js": {
+      "memory": 128
+    }
+  }
+}
+
